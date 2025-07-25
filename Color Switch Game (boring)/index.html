@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Switch - Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            width: 400px;
+            height: 600px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-header {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            z-index: 100;
+        }
+
+        .score {
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            margin-bottom: 10px;
+        }
+
+        .best-score {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            text-shadow: 0 1px 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 40px 30px;
+            border-radius: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .game-over.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .game-over h2 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 2s ease infinite;
+        }
+
+        .game-over p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            opacity: 0.8;
+        }
+
+        .restart-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .restart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .start-screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #f9ca24);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 3s ease infinite;
+        }
+
+        .start-screen p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            opacity: 0.8;
+            max-width: 250px;
+        }
+
+        .start-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        }
+
+        .instructions {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .particle {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            animation: particleFloat 2s linear forwards;
+        }
+
+        @keyframes particleFloat {
+            0% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(-100px) scale(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="score" id="score">0</div>
+            <div class="best-score" id="bestScore">Best: 0</div>
+        </div>
+        
+        <canvas class="game-canvas" id="gameCanvas"></canvas>
+        
+        <div class="start-screen" id="startScreen">
+            <h1>Color Switch</h1>
+            <p>Match the ball color with the obstacle sections!</p>
+            <button class="start-btn" onclick="startGame()">Start Game</button>
+            <div class="instructions">
+                Click or tap to make the ball jump
+            </div>
+        </div>
+        
+        <div class="game-over" id="gameOver">
+            <h2>Game Over!</h2>
+            <p id="finalScore">Score: 0</p>
+            <button class="restart-btn" onclick="restartGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const startScreen = document.getElementById('startScreen');
+        const gameOverScreen = document.getElementById('gameOver');
+        const scoreElement = document.getElementById('score');
+        const bestScoreElement = document.getElementById('bestScore');
+        const finalScoreElement = document.getElementById('finalScore');
+
+        canvas.width = 400;
+        canvas.height = 600;
+
+        let gameState = 'start'; // start, playing, gameOver
+        let score = 0;
+        let bestScore = localStorage.getItem('colorSwitchBest') || 0;
+        bestScoreElement.textContent = `Best: ${bestScore}`;
+
+        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24'];
+        
+        let ball = {
+            x: canvas.width / 2,
+            y: canvas.height - 100,
+            radius: 12,
+            color: colors[0],
+            dy: 0,
+            gravity: 0.4,
+            jumpPower: -10,
+            trail: []
+        };
+
+        let obstacles = [];
+        let colorSwitchers = [];
+        let particles = [];
+        let camera = { y: 0 };
+
+        class Obstacle {
+            constructor(x, y, type = 'circle') {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.rotation = 0;
+                this.rotationSpeed = 0.02;
+                this.radius = type === 'circle' ? 80 : 60;
+                this.segments = this.createSegments();
+                this.glowIntensity = 0;
+            }
+
+            createSegments() {
+                if (this.type === 'circle') {
+                    return [
+                        { color: colors[0], startAngle: 0, endAngle: Math.PI / 2 },
+                        { color: colors[1], startAngle: Math.PI / 2, endAngle: Math.PI },
+                        { color: colors[2], startAngle: Math.PI, endAngle: 3 * Math.PI / 2 },
+                        { color: colors[3], startAngle: 3 * Math.PI / 2, endAngle: 2 * Math.PI }
+                    ];
+                } else {
+                    return [
+                        { color: colors[0], x: -this.radius, y: -10, width: this.radius, height: 20 },
+                        { color: colors[1], x: 0, y: -10, width: this.radius, height: 20 },
+                        { color: colors[2], x: -this.radius, y: -30, width: this.radius, height: 20 },
+                        { color: colors[3], x: 0, y: -30, width: this.radius, height: 20 }
+                    ];
+                }
+            }
+
+            update() {
+                this.rotation += this.rotationSpeed;
+                this.glowIntensity = Math.sin(Date.now() * 0.003) * 0.3 + 0.7;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y - camera.y);
+                ctx.rotate(this.rotation);
+
+                if (this.type === 'circle') {
+                    this.segments.forEach(segment => {
+                        ctx.beginPath();
+                        ctx.arc(0, 0, this.radius, segment.startAngle, segment.endAngle);
+                        ctx.lineWidth = 15;
+                        ctx.strokeStyle = segment.color;
+                        ctx.shadowColor = segment.color;
+                        ctx.shadowBlur = 20 * this.glowIntensity;
+                        ctx.stroke();
+                    });
+                } else {
+                    this.segments.forEach(segment => {
+                        ctx.fillStyle = segment.color;
+                        ctx.shadowColor = segment.color;
+                        ctx.shadowBlur = 15 * this.glowIntensity;
+                        ctx.fillRect(segment.x, segment.y, segment.width, segment.height);
+                    });
+                }
+
+                ctx.restore();
+            }
+
+            checkCollision(ballX, ballY, ballRadius, ballColor) {
+                const dx = ballX - this.x;
+                const dy = ballY - this.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < this.radius + ballRadius && distance > this.radius - ballRadius - 15) {
+                    const angle = Math.atan2(dy, dx) - this.rotation;
+                    let normalizedAngle = ((angle % (2 * Math.PI)) + (2 * Math.PI)) % (2 * Math.PI);
+                    
+                    if (this.type === 'circle') {
+                        let segmentIndex = Math.floor(normalizedAngle / (Math.PI / 2));
+                        return this.segments[segmentIndex].color !== ballColor;
+                    }
+                }
+                return false;
+            }
+        }
+
+        class ColorSwitcher {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 15;
+                this.collected = false;
+                this.rotation = 0;
+                this.scale = 1;
+            }
+
+            update() {
+                this.rotation += 0.05;
+                this.scale = 1 + Math.sin(Date.now() * 0.005) * 0.1;
+            }
+
+            draw() {
+                if (this.collected) return;
+
+                ctx.save();
+                ctx.translate(this.x, this.y - camera.y);
+                ctx.rotate(this.rotation);
+                ctx.scale(this.scale, this.scale);
+
+                colors.forEach((color, i) => {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius, (i * Math.PI / 2), ((i + 1) * Math.PI / 2));
+                    ctx.lineWidth = 6;
+                    ctx.strokeStyle = color;
+                    ctx.shadowColor = color;
+                    ctx.shadowBlur = 15;
+                    ctx.stroke();
+                });
+
+                ctx.restore();
+            }
+
+            checkCollision(ballX, ballY, ballRadius) {
+                if (this.collected) return false;
+                const dx = ballX - this.x;
+                const dy = ballY - this.y;
+                return Math.sqrt(dx * dx + dy * dy) < this.radius + ballRadius;
+            }
+        }
+
+        function createParticle(x, y, color) {
+            return {
+                x: x + (Math.random() - 0.5) * 20,
+                y: y + (Math.random() - 0.5) * 20,
+                dx: (Math.random() - 0.5) * 4,
+                dy: (Math.random() - 0.5) * 4,
+                color: color,
+                size: Math.random() * 4 + 2,
+                life: 1,
+                decay: 0.02
+            };
+        }
+
+        function updateParticles() {
+            particles = particles.filter(particle => {
+                particle.x += particle.dx;
+                particle.y += particle.dy;
+                particle.life -= particle.decay;
+                
+                ctx.save();
+                ctx.globalAlpha = particle.life;
+                ctx.fillStyle = particle.color;
+                ctx.shadowColor = particle.color;
+                ctx.shadowBlur = 10;
+                ctx.beginPath();
+                ctx.arc(particle.x, particle.y - camera.y, particle.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                
+                return particle.life > 0;
+            });
+        }
+
+        function generateLevel() {
+            obstacles = [];
+            colorSwitchers = [];
+            
+            for (let i = 0; i < 20; i++) {
+                const y = -200 - i * 200;
+                const type = Math.random() > 0.5 ? 'circle' : 'square';
+                obstacles.push(new Obstacle(canvas.width / 2, y, type));
+                
+                if (i > 0 && i % 3 === 0) {
+                    colorSwitchers.push(new ColorSwitcher(canvas.width / 2, y + 100));
+                }
+            }
+        }
+
+        function updateBall() {
+            ball.dy += ball.gravity;
+            ball.y += ball.dy;
+            
+            // Add trail effect
+            ball.trail.push({ x: ball.x, y: ball.y, alpha: 1 });
+            if (ball.trail.length > 8) ball.trail.shift();
+            
+            ball.trail.forEach((point, index) => {
+                point.alpha -= 0.12;
+            });
+        }
+
+        function drawBall() {
+            // Draw trail
+            ball.trail.forEach((point, index) => {
+                if (point.alpha > 0) {
+                    ctx.save();
+                    ctx.globalAlpha = point.alpha;
+                    ctx.fillStyle = ball.color;
+                    ctx.shadowColor = ball.color;
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y - camera.y, ball.radius * (point.alpha * 0.8), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+            });
+            
+            // Draw main ball
+            ctx.save();
+            ctx.fillStyle = ball.color;
+            ctx.shadowColor = ball.color;
+            ctx.shadowBlur = 20;
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y - camera.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function updateCamera() {
+            const targetY = ball.y - canvas.height / 2;
+            camera.y += (targetY - camera.y) * 0.1;
+        }
+
+        function checkCollisions() {
+            obstacles.forEach(obstacle => {
+                if (obstacle.checkCollision(ball.x, ball.y, ball.radius, ball.color)) {
+                    gameOver();
+                }
+            });
+
+            colorSwitchers.forEach(switcher => {
+                if (switcher.checkCollision(ball.x, ball.y, ball.radius)) {
+                    switcher.collected = true;
+                    ball.color = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    // Create particles
+                    for (let i = 0; i < 10; i++) {
+                        particles.push(createParticle(switcher.x, switcher.y, ball.color));
+                    }
+                    
+                    score++;
+                    scoreElement.textContent = score;
+                }
+            });
+        }
+
+        function gameLoop() {
+            if (gameState !== 'playing') return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            updateBall();
+            updateCamera();
+            
+            obstacles.forEach(obstacle => {
+                obstacle.update();
+                obstacle.draw();
+            });
+            
+            colorSwitchers.forEach(switcher => {
+                switcher.update();
+                switcher.draw();
+            });
+            
+            updateParticles();
+            drawBall();
+            checkCollisions();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        function jump() {
+            if (gameState === 'playing') {
+                ball.dy = ball.jumpPower;
+                
+                // Create jump particles
+                for (let i = 0; i < 5; i++) {
+                    particles.push(createParticle(ball.x, ball.y, ball.color));
+                }
+            }
+        }
+
+        function startGame() {
+            gameState = 'playing';
+            startScreen.style.display = 'none';
+            gameOverScreen.classList.remove('show');
+            
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height - 100;
+            ball.dy = 0;
+            ball.color = colors[0];
+            ball.trail = [];
+            
+            score = 0;
+            scoreElement.textContent = score;
+            particles = [];
+            camera.y = 0;
+            
+            generateLevel();
+            gameLoop();
+        }
+
+        function gameOver() {
+            gameState = 'gameOver';
+            
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('colorSwitchBest', bestScore);
+                bestScoreElement.textContent = `Best: ${bestScore}`;
+            }
+            
+            finalScoreElement.textContent = `Score: ${score}`;
+            gameOverScreen.classList.add('show');
+        }
+
+        function restartGame() {
+            startGame();
+        }
+
+        // Event listeners
+        canvas.addEventListener('click', jump);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                jump();
+            }
+        });
+
+        // Initialize
+        bestScoreElement.textContent = `Best: ${bestScore}`;
+    </script>
+</body>
+</html>

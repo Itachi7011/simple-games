@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Flappy Space - Easier Mode</title>
+  <style>
+    * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #0c0c1e 0%, #1a1a3a 50%, #2d1b69 100%);
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 800px;
+            max-height: 600px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        canvas {
+            display: block;
+            background: radial-gradient(ellipse at center, #1a1a3a 0%, #0c0c1e 100%);
+            border-radius: 20px;
+        }
+        
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .score {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font-size: 36px;
+            font-weight: bold;
+            text-shadow: 0 0 20px rgba(0, 200, 255, 0.8);
+            pointer-events: none;
+        }
+        
+        .start-screen, .game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            text-align: center;
+            pointer-events: all;
+            backdrop-filter: blur(10px);
+        }
+        
+        .title {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #00d4ff, #ff00ff, #ffff00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(0, 200, 255, 0.5); }
+            to { text-shadow: 0 0 30px rgba(255, 0, 255, 0.8); }
+        }
+        
+        .subtitle {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #ccc;
+        }
+        
+        .play-button, .restart-button {
+            background: linear-gradient(45deg, #00d4ff, #0080ff);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 100, 200, 0.4);
+            margin: 10px;
+        }
+        
+        .play-button:hover, .restart-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(0, 100, 200, 0.6);
+        }
+        
+        .controls {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #aaa;
+            line-height: 1.5;
+        }
+        
+        .high-score {
+            font-size: 24px;
+            color: #ffdd00;
+            margin: 10px 0;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 600px) {
+            .title { font-size: 36px; }
+            .score { font-size: 28px; }
+            .game-container { border-radius: 0; }
+            canvas { border-radius: 0; }
+        }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <canvas id="gameCanvas"></canvas>
+    
+    <div class="ui-overlay">
+      <div class="score" id="score">0</div>
+      
+      <div class="start-screen" id="startScreen">
+        <div class="title">FLAPPY SPACE</div>
+        <div class="subtitle">Navigate through the cosmic void!</div>
+        <button class="play-button" onclick="startGame()">START MISSION</button>
+        <div class="controls">
+          <strong>Controls:</strong><br>
+          🖱️ Mouse Click | ⌨️ Spacebar/Arrow Up | 📱 Tap Screen
+        </div>
+      </div>
+      
+      <div class="game-over-screen hidden" id="gameOverScreen">
+        <div class="title">MISSION FAILED</div>
+        <div class="high-score" id="finalScore">Score: 0</div>
+        <div class="high-score" id="bestScore">Best: 0</div>
+        <button class="restart-button" onclick="startGame()">RETRY MISSION</button>
+        <button class="restart-button" onclick="showStartScreen()">MAIN MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const startScreen = document.getElementById('startScreen');
+    const gameOverScreen = document.getElementById('gameOverScreen');
+    const finalScoreElement = document.getElementById('finalScore');
+    const bestScoreElement = document.getElementById('bestScore');
+
+    function resizeCanvas() {
+      const container = document.querySelector('.game-container');
+      canvas.width = container.clientWidth;
+      canvas.height = container.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    let gameState = 'start';
+    let score = 0;
+    let bestScore = localStorage.getItem('flappySpaceBest') || 0;
+    bestScoreElement.textContent = `Best: ${bestScore}`;
+
+    const player = {
+      x: 100,
+      y: canvas.height / 2,
+      width: 40,
+      height: 30,
+      velocity: 0,
+      gravity: 0.3, // Easier gravity
+      jumpPower: -11.5, // Easier jump
+      rotation: 0,
+      trail: []
+    };
+
+    const obstacles = [];
+    const particles = [];
+    const stars = [];
+
+    for (let i = 0; i < 100; i++) {
+      stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2,
+        speed: Math.random() * 2 + 1,
+        opacity: Math.random() * 0.8 + 0.2
+      });
+    }
+
+    function createParticle(x, y, color = '#00d4ff') {
+      particles.push({
+        x: x,
+        y: y,
+        vx: (Math.random() - 0.5) * 4,
+        vy: (Math.random() - 0.5) * 4,
+        life: 1,
+        decay: 0.02,
+        size: Math.random() * 3 + 1,
+        color: color
+      });
+    }
+
+    function jump() {
+      if (gameState === 'playing') {
+        player.velocity = player.jumpPower;
+        player.rotation = -0.3;
+        for (let i = 0; i < 5; i++) {
+          createParticle(player.x - 10, player.y + 15, '#ff6600');
+        }
+      }
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        jump();
+      }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      jump();
+    });
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      jump();
+    });
+
+    function createObstacle() {
+      const gap = 280; // Easier: more space between obstacles
+      const minHeight = 50;
+      const maxHeight = canvas.height - gap - minHeight;
+      const topHeight = Math.random() * maxHeight + minHeight;
+
+      obstacles.push({
+        x: canvas.width,
+        topHeight: topHeight,
+        bottomY: topHeight + gap,
+        bottomHeight: canvas.height - (topHeight + gap),
+        width: 80,
+        passed: false,
+        glowPhase: 0
+      });
+    }
+
+    function updatePlayer() {
+      player.velocity += player.gravity;
+      player.y += player.velocity;
+      player.rotation = Math.max(-0.5, Math.min(0.5, player.velocity * 0.1));
+      player.trail.push({ x: player.x, y: player.y });
+      if (player.trail.length > 10) {
+        player.trail.shift();
+      }
+      if (player.y < 0) player.y = 0;
+      if (player.y > canvas.height) {
+        gameOver();
+      }
+    }
+
+    function updateObstacles() {
+      obstacles.forEach((obstacle, index) => {
+        obstacle.x -= 2.5; // Easier: slower obstacle speed
+        obstacle.glowPhase += 0.1;
+
+        if (!obstacle.passed && obstacle.x + obstacle.width < player.x) {
+          obstacle.passed = true;
+          score++;
+          scoreElement.textContent = score;
+          for (let i = 0; i < 8; i++) {
+            createParticle(player.x, player.y, '#ffdd00');
+          }
+        }
+
+        if (obstacle.x + obstacle.width < 0) {
+          obstacles.splice(index, 1);
+        }
+      });
+    }
+
+    function updateParticles() {
+      particles.forEach((particle, index) => {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.life -= particle.decay;
+        particle.size *= 0.98;
+
+        if (particle.life <= 0 || particle.size < 0.1) {
+          particles.splice(index, 1);
+        }
+      });
+    }
+
+    function updateStars() {
+      stars.forEach(star => {
+        star.x -= star.speed;
+        if (star.x < 0) {
+          star.x = canvas.width;
+          star.y = Math.random() * canvas.height;
+        }
+      });
+    }
+
+    function checkCollisions() {
+      obstacles.forEach(obstacle => {
+        if (
+          player.x < obstacle.x + obstacle.width &&
+          player.x + player.width > obstacle.x &&
+          (player.y < obstacle.topHeight || player.y + player.height > obstacle.bottomY)
+        ) {
+          gameOver();
+        }
+      });
+    }
+
+    function drawStars() {
+      ctx.fillStyle = 'white';
+      stars.forEach(star => {
+        ctx.globalAlpha = star.opacity;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawPlayer() {
+      ctx.save();
+      player.trail.forEach((point, index) => {
+        const alpha = index / player.trail.length * 0.3;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = '#00d4ff';
+        ctx.beginPath();
+        ctx.arc(point.x + player.width / 2, point.y + player.height / 2, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+
+      ctx.translate(player.x + player.width / 2, player.y + player.height / 2);
+      ctx.rotate(player.rotation);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, player.width / 2, player.height / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#00d4ff';
+      ctx.beginPath();
+      ctx.ellipse(-5, 0, player.width / 3, player.height / 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ff6600';
+      ctx.beginPath();
+      ctx.ellipse(-player.width / 2 - 5, 0, 8, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawObstacles() {
+      obstacles.forEach(obstacle => {
+        const glowIntensity = Math.sin(obstacle.glowPhase) * 0.3 + 0.7;
+        const gradient = ctx.createLinearGradient(obstacle.x, 0, obstacle.x + obstacle.width, 0);
+        gradient.addColorStop(0, `rgba(150, 75, 50, ${glowIntensity})`);
+        gradient.addColorStop(0.5, `rgba(200, 100, 75, ${glowIntensity})`);
+        gradient.addColorStop(1, `rgba(120, 60, 40, ${glowIntensity})`);
+        ctx.fillStyle = gradient;
+
+        ctx.beginPath();
+        ctx.roundRect(obstacle.x, 0, obstacle.width, obstacle.topHeight, [0, 0, 20, 20]);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.roundRect(obstacle.x, obstacle.bottomY, obstacle.width, obstacle.bottomHeight, [20, 20, 0, 0]);
+        ctx.fill();
+
+        ctx.shadowColor = '#ff4444';
+        ctx.shadowBlur = 20;
+        ctx.strokeStyle = `rgba(255, 68, 68, ${glowIntensity * 0.5})`;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      });
+    }
+
+    function drawParticles() {
+      particles.forEach(particle => {
+        ctx.save();
+        ctx.globalAlpha = particle.life;
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      });
+    }
+
+    function gameLoop() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (gameState === 'playing') {
+        updatePlayer();
+        updateObstacles();
+        updateParticles();
+        updateStars();
+        checkCollisions();
+
+        if (Math.random() < 0.006) { // Easier: less frequent obstacles
+          createObstacle();
+        }
+      } else {
+        updateStars();
+        updateParticles();
+      }
+
+      drawStars();
+      drawObstacles();
+      drawParticles();
+      if (gameState === 'playing' || gameState === 'gameOver') {
+        drawPlayer();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      gameState = 'playing';
+      score = 0;
+      scoreElement.textContent = score;
+      player.x = 100;
+      player.y = canvas.height / 2;
+      player.velocity = 0;
+      player.rotation = 0;
+      player.trail = [];
+      obstacles.length = 0;
+      particles.length = 0;
+      startScreen.classList.add('hidden');
+      gameOverScreen.classList.add('hidden');
+    }
+
+    function gameOver() {
+      gameState = 'gameOver';
+
+      if (score > bestScore) {
+        bestScore = score;
+        localStorage.setItem('flappySpaceBest', bestScore);
+      }
+
+      finalScoreElement.textContent = `Score: ${score}`;
+      bestScoreElement.textContent = `Best: ${bestScore}`;
+
+      for (let i = 0; i < 20; i++) {
+        createParticle(player.x + player.width / 2, player.y + player.height / 2, '#ff4444');
+      }
+
+      setTimeout(() => {
+        gameOverScreen.classList.remove('hidden');
+      }, 1000);
+    }
+
+    function showStartScreen() {
+      gameState = 'start';
+      gameOverScreen.classList.add('hidden');
+      startScreen.classList.remove('hidden');
+    }
+
+    gameLoop();
+    canvas.addEventListener('contextmenu', e => e.preventDefault());
+  </script>
+</body>
+</html>

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stack Jump 3D – Dynamic Edition</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body, html { width:100%; height:100%; overflow:hidden; background:#0d0d1a; display:flex; justify-content:center; align-items:center; font-family:sans-serif; }
+    #gameContainer { position: relative; width: 90vw; max-width:400px; height: 90vh; max-height:700px; background:#111; border-radius:20px; overflow:hidden; box-shadow:0 0 30px rgba(0,0,0,0.7);}
+    canvas { width:100%; height:100%; display:block; }
+    #uiOverlay { position:absolute; top:15px; left:50%; transform:translateX(-50%); color:#fff; font-size:24px; text-shadow:0 0 10px rgba(0,0,0,0.6); pointer-events:none;}
+    #combo { position:absolute; top:60px; left:50%; transform:translateX(-50%); color:#ffdd00; font-size:22px; text-shadow:0 0 10px rgba(255,221,0,0.6); pointer-events:none;}
+    #startBtn { position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); padding:14px 28px; font-size:20px; color:#111; background:#00ddff; border:none; border-radius:14px; cursor:pointer; box-shadow:0 0 15px rgba(0,221,255,0.5);}
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <div id="uiOverlay">Score: 0</div>
+    <div id="combo"></div>
+    <button id="startBtn">Play Stack Jump 3D</button>
+  </div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const uiOverlay = document.getElementById('uiOverlay');
+const comboOverlay = document.getElementById('combo');
+const startBtn = document.getElementById('startBtn');
+const container = document.getElementById('gameContainer');
+let width, height;
+
+window.addEventListener('resize', () => {
+  width = container.clientWidth; height = container.clientHeight;
+  canvas.width = width; canvas.height = height;
+});
+window.dispatchEvent(new Event('resize'));
+
+let gameActive=false, score=0, combo=0;
+let blocks=[], currentBlock=null, gravity=0.6;
+let player={x:0,y:0,vy:0,size:20, onTop:true}, particles=[];
+
+class Block {
+  constructor(x, w, y, type='normal') {
+    this.x=x; this.w=w; this.y=y; this.h=20; this.type=type;
+    this.dir = Math.random()<0.5 ? 1:-1;
+    this.speed = type==='moving'? 2:0;
+  }
+  update(){
+    if(this.type==='moving'){
+      this.x += this.dir * this.speed;
+      if(this.x<0 || this.x+this.w>width) this.dir*=-1;
+    }
+  }
+  draw(){
+    const depth = 1 - this.y/height*0.7;
+    const alpha = 0.6 + depth*0.4;
+    ctx.fillStyle = this.type==='bonus'? `rgba(255,215,0,${alpha})` : `rgba(${50+score*5%200},${100},${200},${alpha})`;
+    ctx.fillRect(this.x, this.y, this.w, this.h);
+    if(this.type==='bonus'){
+      ctx.fillStyle='#111'; ctx.fillText('+5', this.x+this.w/2-10, this.y+15);
+    }
+  }
+}
+
+function spawnBlock(){
+  const y = height - (blocks.length+1)*30;
+  const prev = blocks[blocks.length-1];
+  const baseW = prev? prev.w : width;
+  const type = Math.random()<0.1? 'bonus' : (Math.random()<0.3? 'moving':'normal');
+  currentBlock = new Block(0, baseW, y, type);
+  blocks.push(currentBlock);
+}
+
+function launchPlayer(){
+  if(!gameActive||!player.onTop) return;
+  player.vy = -10; player.onTop=false;
+}
+
+function update(){
+  if(gameActive){
+    currentBlock.update();
+    player.y += player.vy;
+    player.vy += gravity;
+    if(player.y + player.size > currentBlock.y && !player.onTop){
+      let landX = player.x + player.size/2;
+      if(landX > currentBlock.x && landX < currentBlock.x+currentBlock.w){
+        // landed
+        player.onTop=true; combo++;
+        const perfect = (landX > currentBlock.x+ currentBlock.w*0.1 && landX < currentBlock.x + currentBlock.w*0.9);
+        if(perfect){ score +=3; showCombo(); spawnParticles(player.x, player.y); }
+        else score++; 
+        uiOverlay.textContent = 'Score: '+score;
+        spawnBlock();
+        player.y = currentBlock.y - player.size;
+      } else {
+        gameOver();
+      }
+    }
+  }
+  particles.forEach((p,i)=>{
+    p.x+=p.vx; p.y+=p.vy; p.life-=0.03;
+    if(p.life<=0) particles.splice(i,1);
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,width,height);
+  blocks.forEach(b=>b.draw());
+  if(player){
+    ctx.fillStyle='#ff5555'; ctx.fillRect(player.x, player.y, player.size, player.size);
+  }
+  particles.forEach(p=>{
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = p.life;
+    ctx.fillRect(p.x,p.y,p.size,p.size);
+    ctx.globalAlpha =1;
+  });
+}
+
+function spawnParticles(x,y){
+  for(let i=0;i<10;i++){
+    particles.push({
+      x:x, y:y,
+      vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4,
+      size:4, life:1, color:'#ffdd00'
+    });
+  }
+}
+
+function showCombo(){
+  comboOverlay.textContent = combo>1? `Combo ×${combo}`:'';
+  setTimeout(()=>{ comboOverlay.textContent=''; },500);
+}
+
+function gameOver(){
+  gameActive=false; startBtn.textContent='Restart'; startBtn.style.display='block';
+}
+
+function gameLoop(){
+  update(); draw();
+  if(gameActive) requestAnimationFrame(gameLoop);
+}
+
+function startGame(){
+  gameActive=true; startBtn.style.display='none';
+  score=0; combo=0; blocks=[]; particles=[];
+  uiOverlay.textContent='Score: 0'; comboOverlay.textContent='';
+  player = {x:width/2 -10, y:0, vy:0, size:20, onTop:false};
+  spawnBlock();
+  spawnBlock();
+  gameLoop();
+}
+
+startBtn.addEventListener('click', startGame);
+
+['keydown','mousedown','touchstart'].forEach(ev=>{
+  window.addEventListener(ev, e=>{
+    if(gameActive){ 
+      launchPlayer();
+    }
+    if(ev==='keydown' && (e.code==='Space'|| e.code==='Enter')) e.preventDefault();
+  });
+});
+</script>
+</body>
+</html>

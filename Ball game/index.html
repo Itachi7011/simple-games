@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rotating Circle Physics Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .game-board {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0.3) 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5), inset 0 0 50px rgba(255,255,255,0.1);
+            overflow: hidden;
+        }
+
+        .rotating-circle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 500px;
+            height: 500px;
+            transform: translate(-50%, -50%);
+            border: 8px solid #fff;
+            border-radius: 50%;
+            animation: rotate 5s linear infinite;
+            box-shadow: 0 0 30px rgba(255,255,255,0.5), inset 0 0 30px rgba(255,255,255,0.2);
+        }
+
+        .gap {
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 18px;
+            background: transparent;
+            border-radius: 0 0 10px 10px;
+        }
+
+        .gap::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 0 0 10px 10px;
+        }
+
+        .ball {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ff6b6b, #ee5a24);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.6), inset -3px -3px 6px rgba(0,0,0,0.3), inset 3px 3px 6px rgba(255,255,255,0.3);
+            transition: transform 0.016s linear;
+            z-index: 10;
+        }
+
+        .ball::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 6px;
+            width: 6px;
+            height: 6px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(255,255,255,0.6);
+        }
+
+        @keyframes rotate {
+            from { transform: translate(-50%, -50%) rotate(0deg); }
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .control-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 180px;
+        }
+
+        .control-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(145deg, #ffffff, #e6e6e6);
+            box-shadow: 5px 5px 10px #d1d1d1, -5px -5px 10px #ffffff;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            color: #333;
+            transition: all 0.1s;
+            user-select: none;
+        }
+
+        .control-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 7px 7px 15px #d1d1d1, -7px -7px 15px #ffffff;
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+            box-shadow: inset 3px 3px 6px #d1d1d1, inset -3px -3px 6px #ffffff;
+        }
+
+        .control-btn:nth-child(2) { grid-column: 2; }
+        .control-btn:nth-child(3) { grid-column: 1; grid-row: 2; }
+        .control-btn:nth-child(4) { grid-column: 2; grid-row: 2; }
+        .control-btn:nth-child(5) { grid-column: 3; grid-row: 2; }
+
+        .game-info {
+            display: flex;
+            gap: 30px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .info-label {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .game-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(145deg, #4facfe, #00f2fe);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .game-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .instructions {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 300px;
+            font-size: 14px;
+            backdrop-filter: blur(10px);
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #4facfe;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: sparkle 1s ease-out forwards;
+        }
+
+        @keyframes sparkle {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="instructions">
+        <h3>🎮 Game Controls</h3>
+        <p>• Use arrow buttons or WASD keys to control balls<br>
+        • Balls spawn when they exit through the gap<br>
+        • Try to keep them inside as long as possible!<br>
+        • Press R to reset the game</p>
+    </div>
+
+    <div class="game-container">
+        <div class="game-info">
+            <div class="info-item">
+                <div class="info-label">Time</div>
+                <div class="info-value" id="timer">00:00</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Balls</div>
+                <div class="info-value" id="ballCount">1</div>
+            </div>
+            <div class="info-item">
+                <div class="info-label">Score</div>
+                <div class="info-value" id="score">0</div>
+            </div>
+        </div>
+
+        <div class="game-board" id="gameBoard">
+            <div class="rotating-circle">
+                <div class="gap"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="control-buttons">
+                <button class="control-btn" data-key="up">↑</button>
+                <button class="control-btn" data-key="left">←</button>
+                <button class="control-btn" data-key="down">↓</button>
+                <button class="control-btn" data-key="right">→</button>
+            </div>
+            
+            <div class="game-controls">
+                <button class="game-btn" onclick="resetGame()">🔄 Reset</button>
+                <button class="game-btn" onclick="togglePause()">⏸️ Pause</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Ball {
+            constructor(x, y, vx = 0, vy = 0) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.radius = 10;
+                this.element = this.createElement();
+                this.trail = [];
+                this.id = Math.random().toString(36).substr(2, 9);
+            }
+
+            createElement() {
+                const ball = document.createElement('div');
+                ball.className = 'ball';
+                ball.style.left = (this.x - this.radius) + 'px';
+                ball.style.top = (this.y - this.radius) + 'px';
+                return ball;
+            }
+
+            update() {
+                // Apply gravity
+                this.vy += 0.2;
+                
+                // Apply air resistance
+                this.vx *= 0.999;
+                this.vy *= 0.999;
+                
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Check collision with circular boundary
+                const centerX = 300;
+                const centerY = 300;
+                const circleRadius = 240;
+                const distance = Math.sqrt((this.x - centerX) ** 2 + (this.y - centerY) ** 2);
+                
+                if (distance > circleRadius - this.radius) {
+                    // Check if ball is at the gap position
+                    const angle = Math.atan2(this.y - centerY, this.x - centerX);
+                    const rotationTime = Date.now() / 1000;
+                    const gapAngle = ((rotationTime * 72) % 360) * (Math.PI / 180) - Math.PI / 2;
+                    const gapWidth = 0.3;
+                    
+                    let angleToGap = Math.abs(angle - gapAngle);
+                    if (angleToGap > Math.PI) angleToGap = 2 * Math.PI - angleToGap;
+                    
+                    if (angleToGap < gapWidth) {
+                        // Ball escaped through gap
+                        return false;
+                    }
+                    
+                    // Bounce off the circular wall
+                    const nx = (this.x - centerX) / distance;
+                    const ny = (this.y - centerY) / distance;
+                    
+                    // Move ball back inside circle
+                    this.x = centerX + nx * (circleRadius - this.radius);
+                    this.y = centerY + ny * (circleRadius - this.radius);
+                    
+                    // Reflect velocity
+                    const dotProduct = this.vx * nx + this.vy * ny;
+                    this.vx -= 2 * dotProduct * nx;
+                    this.vy -= 2 * dotProduct * ny;
+                    
+                    // Add some energy loss for realism
+                    this.vx *= 0.85;
+                    this.vy *= 0.85;
+                    
+                    // Create sparkle effect
+                    this.createSparkles(this.x, this.y);
+                }
+                
+                return true;
+            }
+
+            createSparkles(x, y) {
+                for (let i = 0; i < 5; i++) {
+                    const particle = document.createElement('div');
+                    particle.className = 'particle';
+                    particle.style.left = x + Math.random() * 20 - 10 + 'px';
+                    particle.style.top = y + Math.random() * 20 - 10 + 'px';
+                    gameBoard.appendChild(particle);
+                    
+                    setTimeout(() => particle.remove(), 1000);
+                }
+            }
+
+            render() {
+                this.element.style.left = (this.x - this.radius) + 'px';
+                this.element.style.top = (this.y - this.radius) + 'px';
+            }
+
+            applyForce(fx, fy) {
+                this.vx += fx;
+                this.vy += fy;
+            }
+        }
+
+        class Game {
+            constructor() {
+                this.balls = [];
+                this.gameBoard = document.getElementById('gameBoard');
+                this.startTime = Date.now();
+                this.score = 0;
+                this.isPaused = false;
+                this.keys = {};
+                this.init();
+            }
+
+            init() {
+                // Create initial ball
+                this.addBall(300, 300, Math.random() * 4 - 2, Math.random() * 4 - 2);
+                this.setupControls();
+                this.gameLoop();
+                this.updateTimer();
+            }
+
+            addBall(x, y, vx = 0, vy = 0) {
+                const ball = new Ball(x, y, vx, vy);
+                this.balls.push(ball);
+                this.gameBoard.appendChild(ball.element);
+                this.updateBallCount();
+            }
+
+            removeBall(ball) {
+                const index = this.balls.indexOf(ball);
+                if (index > -1) {
+                    this.balls.splice(index, 1);
+                    ball.element.remove();
+                    this.updateBallCount();
+                }
+            }
+
+            setupControls() {
+                // Keyboard controls
+                document.addEventListener('keydown', (e) => {
+                    this.keys[e.key.toLowerCase()] = true;
+                    if (e.key.toLowerCase() === 'r') this.reset();
+                    if (e.key === ' ') {
+                        e.preventDefault();
+                        this.togglePause();
+                    }
+                });
+
+                document.addEventListener('keyup', (e) => {
+                    this.keys[e.key.toLowerCase()] = false;
+                });
+
+                // Button controls
+                document.querySelectorAll('.control-btn').forEach(btn => {
+                    btn.addEventListener('mousedown', () => {
+                        const key = btn.dataset.key;
+                        this.keys[key] = true;
+                    });
+                    
+                    btn.addEventListener('mouseup', () => {
+                        const key = btn.dataset.key;
+                        this.keys[key] = false;
+                    });
+                    
+                    btn.addEventListener('mouseleave', () => {
+                        const key = btn.dataset.key;
+                        this.keys[key] = false;
+                    });
+                });
+            }
+
+            handleInput() {
+                if (this.isPaused) return;
+                
+                const force = 0.5;
+                
+                this.balls.forEach(ball => {
+                    if (this.keys['w'] || this.keys['arrowup'] || this.keys['up']) {
+                        ball.applyForce(0, -force);
+                    }
+                    if (this.keys['s'] || this.keys['arrowdown'] || this.keys['down']) {
+                        ball.applyForce(0, force);
+                    }
+                    if (this.keys['a'] || this.keys['arrowleft'] || this.keys['left']) {
+                        ball.applyForce(-force, 0);
+                    }
+                    if (this.keys['d'] || this.keys['arrowright'] || this.keys['right']) {
+                        ball.applyForce(force, 0);
+                    }
+                });
+            }
+
+            gameLoop() {
+                if (!this.isPaused) {
+                    this.handleInput();
+                    
+                    // Update balls
+                    for (let i = this.balls.length - 1; i >= 0; i--) {
+                        const ball = this.balls[i];
+                        const stillInside = ball.update();
+                        
+                        if (!stillInside) {
+                            // Ball escaped, spawn two new balls
+                            this.score += 10;
+                            this.addBall(300, 300, Math.random() * 6 - 3, Math.random() * 6 - 3);
+                            this.addBall(300, 300, Math.random() * 6 - 3, Math.random() * 6 - 3);
+                            this.removeBall(ball);
+                        } else {
+                            ball.render();
+                        }
+                    }
+                    
+                    // Increment score based on survival time
+                    this.score += this.balls.length * 0.1;
+                    this.updateScore();
+                }
+                
+                requestAnimationFrame(() => this.gameLoop());
+            }
+
+            updateTimer() {
+                if (!this.isPaused) {
+                    const elapsed = Date.now() - this.startTime;
+                    const minutes = Math.floor(elapsed / 60000);
+                    const seconds = Math.floor((elapsed % 60000) / 1000);
+                    document.getElementById('timer').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }
+                setTimeout(() => this.updateTimer(), 1000);
+            }
+
+            updateBallCount() {
+                document.getElementById('ballCount').textContent = this.balls.length;
+            }
+
+            updateScore() {
+                document.getElementById('score').textContent = Math.floor(this.score);
+            }
+
+            togglePause() {
+                this.isPaused = !this.isPaused;
+                if (!this.isPaused) {
+                    this.startTime += Date.now() - this.pauseTime;
+                } else {
+                    this.pauseTime = Date.now();
+                }
+                
+                const pauseBtn = document.querySelector('.game-btn:nth-child(2)');
+                pauseBtn.textContent = this.isPaused ? '▶️ Resume' : '⏸️ Pause';
+            }
+
+            reset() {
+                // Remove all balls
+                this.balls.forEach(ball => ball.element.remove());
+                this.balls = [];
+                
+                // Reset game state
+                this.startTime = Date.now();
+                this.score = 0;
+                this.isPaused = false;
+                
+                // Create initial ball
+                this.addBall(300, 300, Math.random() * 4 - 2, Math.random() * 4 - 2);
+                
+                // Update UI
+                this.updateScore();
+                document.querySelector('.game-btn:nth-child(2)').textContent = '⏸️ Pause';
+            }
+        }
+
+        // Global functions for buttons
+        let game;
+
+        function resetGame() {
+            game.reset();
+        }
+
+        function togglePause() {
+            game.togglePause();
+        }
+
+        // Start the game
+        document.addEventListener('DOMContentLoaded', () => {
+            game = new Game();
+        });
+    </script>
+</body>
+</html>
